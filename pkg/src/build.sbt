@@ -12,12 +12,12 @@ version := "0.1"
 
 organization := "edu.berkeley.cs.amplab"
 
-scalaVersion := "2.10.3"
+scalaVersion := "2.10.4"
 
 libraryDependencies ++= Seq(
   "org.slf4j" % "slf4j-api" % "1.7.2",
   "org.slf4j" % "slf4j-log4j12" % "1.7.2",
-  "org.apache.spark" % "spark-core_2.10" % "0.9.0-incubating"
+  "org.apache.spark" % "spark-core_2.10" % "1.0.2"
 )
 
 {
