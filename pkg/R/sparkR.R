@@ -19,8 +19,8 @@ sparkR.stop <- function(sparkREnv) {
     callJMethod(sc, "stop")
   }
 
+  callJStatic("SparkRHandler", "stopBackend")
   if (exists(".sparkRCon", envir = .sparkREnv)) {
-    callJStatic("SparkRHandler", "stopBackend")
     # Also close the connection and remove it from our env
     conn <- get(".sparkRCon", .sparkREnv)
     close(conn)
@@ -58,7 +58,8 @@ sparkR.init <- function(
   sparkExecutorEnv = list(),
   sparkJars = "",
   sparkRLibDir = "",
-  sparkRBackendPort = 12345) {
+  sparkRBackendPort = 12345,
+  sparkRBackendReuseConn = as.logical(Sys.getenv("SPARKR_BACKEND_REUSE_CONN", unset = "TRUE"))) {
 
   if (exists(".sparkRjsc", envir = .sparkREnv)) {
     cat("Re-using existing Spark Context. Please restart R to create a new Spark Context\n")
@@ -79,7 +80,14 @@ sparkR.init <- function(
                 args = as.character(sparkRBackendPort),
                 javaOpts = paste("-Xmx", sparkMem, sep = ""))
   Sys.sleep(2) # Wait for backend to come up
-  connectBackend("localhost", 12345) # Connect to it
+
+  .sparkREnv$sparkRBackendReuseConn <- sparkRBackendReuseConn
+  .sparkREnv$sparkRBackendPort <- sparkRBackendPort
+  if (sparkRBackendReuseConn) {
+    connectBackend("localhost", sparkRBackendPort)
+  } else {
+    cat("Not re-using connections to SparkR backend\n")
+  }
 
   if (nchar(sparkHome) != 0) {
     sparkHome <- normalizePath(sparkHome)

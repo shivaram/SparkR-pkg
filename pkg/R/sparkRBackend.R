@@ -46,7 +46,7 @@ isRemoveMethod <- function(isStatic, objId, methodName) {
 #         for static methods
 # methodName - name of method to be invoked
 invokeJava <- function(isStatic, objId, methodName, ...) {
-  if (!exists(".sparkRCon", .sparkREnv)) {
+  if (.sparkREnv$sparkRBackendReuseConn && !exists(".sparkRCon", .sparkREnv)) {
     stop("No connection to backend found")
   }
 
@@ -74,7 +74,12 @@ invokeJava <- function(isStatic, objId, methodName, ...) {
 
   bytesToSend <- rawConnectionValue(rc)
 
-  conn <- get(".sparkRCon", .sparkREnv)
+  if (.sparkREnv$sparkRBackendReuseConn) {
+    conn <- get(".sparkRCon", .sparkREnv)
+  } else {
+    conn <- connectBackend("localhost", .sparkREnv$sparkRBackendPort)
+  }
+
   writeInt(conn, length(bytesToSend))
   writeBin(bytesToSend, conn)
 
@@ -84,6 +89,10 @@ invokeJava <- function(isStatic, objId, methodName, ...) {
   ret <- readObject(conn)
 
   close(rc) # TODO: Can we close this before ?
+  if (!.sparkREnv$sparkRBackendReuseConn) {
+    close(conn)
+    rm(".sparkRCon", envir = .sparkREnv)
+  }
 
   ret
 }

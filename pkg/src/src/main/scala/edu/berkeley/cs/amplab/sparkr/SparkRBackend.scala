@@ -7,6 +7,7 @@ import java.util.concurrent.TimeUnit
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.ChannelFuture
 import io.netty.channel.ChannelInitializer
+import io.netty.channel.ChannelOption
 import io.netty.channel.EventLoopGroup
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.SocketChannel
@@ -34,6 +35,8 @@ class SparkRBackend {
     bootstrap = new ServerBootstrap()
       .group(bossGroup, workerGroup)
       .channel(classOf[NioServerSocketChannel])
+      .option[java.lang.Boolean](ChannelOption.TCP_NODELAY, true)
+      .childOption[java.lang.Boolean](ChannelOption.TCP_NODELAY, true)
   
     bootstrap.childHandler(new ChannelInitializer[SocketChannel]() {
       def initChannel(ch: SocketChannel) = {
