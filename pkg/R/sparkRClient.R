@@ -12,14 +12,13 @@ connectBackend <- function(hostname, port, timeout = 60) {
                           blocking = TRUE, open = "wb", timeout = timeout)
 
   # Set TCP NODELAY for sockets on Unix-like machines.
+  # This is to address SPARKR-183 where we see
+  # 40ms latencies for every RPC without TCP NODELAY.
   if (.Platform$OS.type == "unix") {
     # Get the FD for this socket connection
     sockfd <- getFD(hostname, port)
     if (sockfd > 0) {
-      ret <- .Call("setTcpNoDelay", sockfd)
-      if (ret == 1) {
-        cat("Successfully set TCP NODELAY on ", sockfd, "\n")
-      }
+      .Call("setTcpNoDelay", sockfd)
     }
   }
 
