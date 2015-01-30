@@ -148,3 +148,23 @@ sparkR.init <- function(
 
   sc
 }
+
+sparkRSQL.init <- function(sc) {
+  #sparkContext = sc
+  sparkContext = callJMethod(sc, "sc")
+  if (exists(".sparkRSQLjsc", envir=.sparkREnv)) {
+    cat("Re-using existing SparkSQL Context. Please restart R to create a new SparkSQL Context\n")
+    return(get(".sparkRSQLjsc", envir=.sparkREnv))
+  }
+  assign(
+    ".sparkRSQLsc",
+    callJStatic(
+      "edu.berkeley.cs.amplab.sparkr.RRDD",
+      "createSQLContext",
+      sparkContext),
+    envir=.sparkREnv
+  )
+  sqlctx <- get(".sparkRSQLsc", envir=.sparkREnv)
+  # Register a finalizer to stop backend on R exit
+  sqlctx
+}
