@@ -11,7 +11,7 @@ setOldClass("jobj")
 #' @param env An R environment that stores bookkeeping states of the RDD
 #' @param jrdd Java object reference to the backing JavaRDD
 #' @export
-#' 
+
 setClass("RDD",
          slots = list(env = "environment",
                       jrdd = "jobj"))
