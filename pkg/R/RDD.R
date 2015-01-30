@@ -11,10 +11,16 @@ setOldClass("jobj")
 #' @param env An R environment that stores bookkeeping states of the RDD
 #' @param jrdd Java object reference to the backing JavaRDD
 #' @export
-
 setClass("RDD",
          slots = list(env = "environment",
                       jrdd = "jobj"))
+
+setClass("PipelinedRDD",
+         slots = list(prev = "RDD",
+                      func = "function",
+                      prev_jrdd = "jobj"),
+         contains = "RDD")
+
 
 setMethod("initialize", "RDD", function(.Object, jrdd, serialized,
                                         isCached, isCheckpointed) {
@@ -23,33 +29,17 @@ setMethod("initialize", "RDD", function(.Object, jrdd, serialized,
   # object (passed as an argument into a function, such as cache()) difficult:
   # i.e. one needs to make a copy of the RDD object and sets the new slot value
   # there.
-  
+
   # The slots are inheritable from superclass. Here, both `env' and `jrdd' are
   # inherited from RDD, but only the former is used.
   .Object@env <- new.env()
   .Object@env$isCached <- isCached
   .Object@env$isCheckpointed <- isCheckpointed
   .Object@env$serialized <- serialized
-  
+
   .Object@jrdd <- jrdd
   .Object
 })
-
-#' @rdname RDD
-#' @export
-RDD <- function(jrdd, serialized = TRUE, isCached = FALSE,
-                isCheckpointed = FALSE) {
-  new("RDD", jrdd, serialized, isCached, isCheckpointed)
-}
-
-# @title S4 class that represents a PipelinedRDD
-# @rdname PipelinedRDD
-# @export
-setClass("PipelinedRDD",
-         slots = list(prev = "RDD",
-                      func = "function",
-                      prev_jrdd = "jobj"),
-         contains = "RDD")
 
 setMethod("initialize", "PipelinedRDD", function(.Object, prev, func, jrdd_val) {
   .Object@env <- new.env()
@@ -79,8 +69,16 @@ setMethod("initialize", "PipelinedRDD", function(.Object, prev, func, jrdd_val) 
   .Object
 })
 
-# @rdname PipelinedRDD
-# @export
+
+#' @rdname RDD
+#' @export
+RDD <- function(jrdd, serialized = TRUE, isCached = FALSE,
+                isCheckpointed = FALSE) {
+  new("RDD", jrdd, serialized, isCached, isCheckpointed)
+}
+
+#' @rdname PipelinedRDD
+#' @export
 PipelinedRDD <- function(prev, func) {
   new("PipelinedRDD", prev, func, NULL)
 }
