@@ -11,16 +11,10 @@ setOldClass("jobj")
 #' @param env An R environment that stores bookkeeping states of the RDD
 #' @param jrdd Java object reference to the backing JavaRDD
 #' @export
+
 setClass("RDD",
          slots = list(env = "environment",
                       jrdd = "jobj"))
-
-setClass("PipelinedRDD",
-         slots = list(prev = "RDD",
-                      func = "function",
-                      prev_jrdd = "jobj"),
-         contains = "RDD")
-
 
 setMethod("initialize", "RDD", function(.Object, jrdd, serialized,
                                         isCached, isCheckpointed) {
@@ -29,17 +23,33 @@ setMethod("initialize", "RDD", function(.Object, jrdd, serialized,
   # object (passed as an argument into a function, such as cache()) difficult:
   # i.e. one needs to make a copy of the RDD object and sets the new slot value
   # there.
-
+  
   # The slots are inheritable from superclass. Here, both `env' and `jrdd' are
   # inherited from RDD, but only the former is used.
   .Object@env <- new.env()
   .Object@env$isCached <- isCached
   .Object@env$isCheckpointed <- isCheckpointed
   .Object@env$serialized <- serialized
-
+  
   .Object@jrdd <- jrdd
   .Object
 })
+
+#' @rdname RDD
+#' @export
+RDD <- function(jrdd, serialized = TRUE, isCached = FALSE,
+                isCheckpointed = FALSE) {
+  new("RDD", jrdd, serialized, isCached, isCheckpointed)
+}
+
+# @title S4 class that represents a PipelinedRDD
+# @rdname PipelinedRDD
+# @export
+setClass("PipelinedRDD",
+         slots = list(prev = "RDD",
+                      func = "function",
+                      prev_jrdd = "jobj"),
+         contains = "RDD")
 
 setMethod("initialize", "PipelinedRDD", function(.Object, prev, func, jrdd_val) {
   .Object@env <- new.env()
@@ -48,12 +58,12 @@ setMethod("initialize", "PipelinedRDD", function(.Object, prev, func, jrdd_val) 
   .Object@env$jrdd_val <- jrdd_val
   .Object@env$serialized <- prev@env$serialized
   .Object@prev <- prev
-
+  
   isPipelinable <- function(rdd) {
     e <- rdd@env
     !(e$isCached || e$isCheckpointed)
   }
-
+  
   if (!inherits(prev, "PipelinedRDD") || !isPipelinable(prev)) {
     # This transformation is the first in its stage:
     .Object@func <- func
@@ -65,20 +75,12 @@ setMethod("initialize", "PipelinedRDD", function(.Object, prev, func, jrdd_val) 
     .Object@func <- pipelinedFunc
     .Object@prev_jrdd <- prev@prev_jrdd # maintain the pipeline
   }
-
+  
   .Object
 })
 
-
-#' @rdname RDD
-#' @export
-RDD <- function(jrdd, serialized = TRUE, isCached = FALSE,
-                isCheckpointed = FALSE) {
-  new("RDD", jrdd, serialized, isCached, isCheckpointed)
-}
-
-#' @rdname PipelinedRDD
-#' @export
+# @rdname PipelinedRDD
+# @export
 PipelinedRDD <- function(prev, func) {
   new("PipelinedRDD", prev, func, NULL)
 }
@@ -92,7 +94,7 @@ setMethod("getJRDD", signature(rdd = "PipelinedRDD"),
             if (!is.null(rdd@env$jrdd_val)) {
               return(rdd@env$jrdd_val)
             }
-
+            
             # TODO: This is to handle anonymous functions. Find out a
             # better way to do this.
             computeFunc <- function(split, part) {
@@ -100,18 +102,18 @@ setMethod("getJRDD", signature(rdd = "PipelinedRDD"),
             }
             serializedFuncArr <- serialize("computeFunc", connection = NULL,
                                            ascii = TRUE)
-
+            
             packageNamesArr <- serialize(.sparkREnv[[".packages"]],
                                          connection = NULL,
                                          ascii = TRUE)
-
+            
             broadcastArr <- lapply(ls(.broadcastNames),
                                    function(name) { get(name, .broadcastNames) })
-
+            
             depsBin <- getDependencies(computeFunc)
-
+            
             prev_jrdd <- rdd@prev_jrdd
-
+            
             if (dataSerialization) {
               rddRef <- newJObject("edu.berkeley.cs.amplab.sparkr.RRDD",
                                    callJMethod(prev_jrdd, "rdd"),
@@ -216,17 +218,17 @@ setMethod("persist",
                                      "OFF_HEAP")) {
             match.arg(newLevel)
             storageLevel <- switch(newLevel,
-              "DISK_ONLY" = callJStatic("org.apache.spark.storage.StorageLevel", "DISK_ONLY"),
-              "DISK_ONLY_2" = callJStatic("org.apache.spark.storage.StorageLevel", "DISK_ONLY_2"),
-              "MEMORY_AND_DISK" = callJStatic("org.apache.spark.storage.StorageLevel", "MEMORY_AND_DISK"),
-              "MEMORY_AND_DISK_2" = callJStatic("org.apache.spark.storage.StorageLevel", "MEMORY_AND_DISK_2"),
-              "MEMORY_AND_DISK_SER" = callJStatic("org.apache.spark.storage.StorageLevel", "MEMORY_AND_DISK_SER"),
-              "MEMORY_AND_DISK_SER_2" = callJStatic("org.apache.spark.storage.StorageLevel", "MEMORY_AND_DISK_SER_2"),
-              "MEMORY_ONLY" = callJStatic("org.apache.spark.storage.StorageLevel", "MEMORY_ONLY"),
-              "MEMORY_ONLY_2" = callJStatic("org.apache.spark.storage.StorageLevel", "MEMORY_ONLY_2"),
-              "MEMORY_ONLY_SER" = callJStatic("org.apache.spark.storage.StorageLevel", "MEMORY_ONLY_SER"),
-              "MEMORY_ONLY_SER_2" = callJStatic("org.apache.spark.storage.StorageLevel", "MEMORY_ONLY_SER_2"),
-              "OFF_HEAP" = callJStatic("org.apache.spark.storage.StorageLevel", "OFF_HEAP"))
+                                   "DISK_ONLY" = callJStatic("org.apache.spark.storage.StorageLevel", "DISK_ONLY"),
+                                   "DISK_ONLY_2" = callJStatic("org.apache.spark.storage.StorageLevel", "DISK_ONLY_2"),
+                                   "MEMORY_AND_DISK" = callJStatic("org.apache.spark.storage.StorageLevel", "MEMORY_AND_DISK"),
+                                   "MEMORY_AND_DISK_2" = callJStatic("org.apache.spark.storage.StorageLevel", "MEMORY_AND_DISK_2"),
+                                   "MEMORY_AND_DISK_SER" = callJStatic("org.apache.spark.storage.StorageLevel", "MEMORY_AND_DISK_SER"),
+                                   "MEMORY_AND_DISK_SER_2" = callJStatic("org.apache.spark.storage.StorageLevel", "MEMORY_AND_DISK_SER_2"),
+                                   "MEMORY_ONLY" = callJStatic("org.apache.spark.storage.StorageLevel", "MEMORY_ONLY"),
+                                   "MEMORY_ONLY_2" = callJStatic("org.apache.spark.storage.StorageLevel", "MEMORY_ONLY_2"),
+                                   "MEMORY_ONLY_SER" = callJStatic("org.apache.spark.storage.StorageLevel", "MEMORY_ONLY_SER"),
+                                   "MEMORY_ONLY_SER_2" = callJStatic("org.apache.spark.storage.StorageLevel", "MEMORY_ONLY_SER_2"),
+                                   "OFF_HEAP" = callJStatic("org.apache.spark.storage.StorageLevel", "OFF_HEAP"))
             
             callJMethod(getJRDD(rdd), "persist", storageLevel)
             rdd@env$isCached <- TRUE
@@ -365,7 +367,7 @@ setMethod("collectPartition",
             jPartitionsList <- callJMethod(getJRDD(rdd),
                                            "collectPartitions",
                                            as.list(as.integer(partitionId)))
-
+            
             jList <- jPartitionsList[[1]]
             convertJListToRList(jList, flatten = TRUE)
           })
@@ -522,7 +524,7 @@ setMethod("lapply",
 #' @rdname lapply
 #' @export
 setGeneric("map", function(X, FUN) {
-           standardGeneric("map") })
+  standardGeneric("map") })
 
 #' @rdname lapply
 #' @aliases map,RDD,function-method
@@ -550,7 +552,7 @@ setMethod("map",
 #' collect(multiplyByTwo) # 2,20,4,40,6,60...
 #'}
 setGeneric("flatMap", function(X, FUN) {
-           standardGeneric("flatMap") })
+  standardGeneric("flatMap") })
 
 #' @rdname flatMap
 #' @aliases flatMap,RDD,function-method
@@ -583,7 +585,7 @@ setMethod("flatMap",
 #' collect(partitionSum) # 15, 40
 #'}
 setGeneric("lapplyPartition", function(X, FUN) {
-           standardGeneric("lapplyPartition") })
+  standardGeneric("lapplyPartition") })
 
 #' @rdname lapplyPartition
 #' @aliases lapplyPartition,RDD,function-method
@@ -598,7 +600,7 @@ setMethod("lapplyPartition",
 #' @rdname lapplyPartition
 #' @export
 setGeneric("mapPartitions", function(X, FUN) {
-           standardGeneric("mapPartitions") })
+  standardGeneric("mapPartitions") })
 
 #' @rdname lapplyPartition
 #' @aliases mapPartitions,RDD,function-method
@@ -626,7 +628,7 @@ setMethod("mapPartitions",
 #' collect(prod, flatten = FALSE) # 0, 7, 22, 45, 76
 #'}
 setGeneric("lapplyPartitionsWithIndex", function(X, FUN) {
-           standardGeneric("lapplyPartitionsWithIndex") })
+  standardGeneric("lapplyPartitionsWithIndex") })
 
 #' @rdname lapplyPartitionsWithIndex
 #' @aliases lapplyPartitionsWithIndex,RDD,function-method
@@ -643,7 +645,7 @@ setMethod("lapplyPartitionsWithIndex",
 #' @rdname lapplyPartitionsWithIndex
 #' @export
 setGeneric("mapPartitionsWithIndex", function(X, FUN) {
-           standardGeneric("mapPartitionsWithIndex") })
+  standardGeneric("mapPartitionsWithIndex") })
 
 #' @rdname lapplyPartitionsWithIndex
 #' @aliases mapPartitionsWithIndex,RDD,function-method
@@ -712,11 +714,11 @@ setGeneric("reduce", function(rdd, func) { standardGeneric("reduce") })
 setMethod("reduce",
           signature(rdd = "RDD", func = "ANY"),
           function(rdd, func) {
-
+            
             reducePartition <- function(part) {
               Reduce(func, part)
             }
-
+            
             partitionList <- collect(lapplyPartition(rdd, reducePartition),
                                      flatten = FALSE)
             Reduce(func, partitionList)
@@ -841,19 +843,19 @@ setMethod("take",
             index <- -1
             jrdd <- getJRDD(rdd)
             numPartitions <- numPartitions(rdd)
-
+            
             # TODO(shivaram): Collect more than one partition based on size
             # estimates similar to the scala version of `take`.
             while (TRUE) {
               index <- index + 1
-
+              
               if (length(resList) >= num || index >= numPartitions)
                 break
-
+              
               # a JList of byte arrays
               partitionArr <- callJMethod(jrdd, "collectPartitions", as.list(as.integer(index)))
               partition <- partitionArr[[1]]
-
+              
               size <- num - length(resList)
               # elems is capped to have at most `size` elements
               elems <- convertJListToRList(partition,
@@ -930,17 +932,17 @@ setMethod("sampleRDD",
           signature(rdd = "RDD", withReplacement = "logical",
                     fraction = "numeric", seed = "integer"),
           function(rdd, withReplacement, fraction, seed) {
-
+            
             # The sampler: takes a partition and returns its sampled version.
             samplingFunc <- function(split, part) {
               set.seed(seed)
               res <- vector("list", length(part))
               len <- 0
-
+              
               # Discards some random values to ensure each partition has a
               # different random seed.
               runif(split)
-
+              
               for (elem in part) {
                 if (withReplacement) {
                   count <- rpois(1, fraction)
@@ -955,7 +957,7 @@ setMethod("sampleRDD",
                   }
                 }
               }
-
+              
               # TODO(zongheng): look into the performance of the current
               # implementation. Look into some iterator package? Note that
               # Scala avoids many calls to creating an empty list and PySpark
@@ -965,7 +967,7 @@ setMethod("sampleRDD",
               else
                 list()
             }
-
+            
             lapplyPartitionsWithIndex(rdd, samplingFunc)
           })
 
@@ -1003,16 +1005,16 @@ setMethod("takeSample", signature(rdd = "RDD", withReplacement = "logical",
             initialCount <- count(rdd)
             maxSelected <- 0
             MAXINT <- .Machine$integer.max
-
+            
             if (num < 0)
               stop(paste("Negative number of elements requested"))
-
+            
             if (initialCount > MAXINT - 1) {
               maxSelected <- MAXINT - 1
             } else {
               maxSelected <- initialCount
             }
-
+            
             if (num > initialCount && !withReplacement) {
               total <- maxSelected
               fraction <- multiplier * (maxSelected + 1) / initialCount
@@ -1020,7 +1022,7 @@ setMethod("takeSample", signature(rdd = "RDD", withReplacement = "logical",
               total <- num
               fraction <- multiplier * (num + 1) / initialCount
             }
-
+            
             set.seed(seed)
             samples <- collect(sampleRDD(rdd, withReplacement, fraction,
                                          as.integer(ceiling(runif(1,
@@ -1034,7 +1036,7 @@ setMethod("takeSample", signature(rdd = "RDD", withReplacement = "logical",
                                            as.integer(ceiling(runif(1,
                                                                     -MAXINT,
                                                                     MAXINT)))))
-
+            
             # TODO(zongheng): investigate if this call is an in-place shuffle?
             sample(samples)[1:total]
           })
@@ -1265,24 +1267,24 @@ setGeneric("partitionBy",
 setMethod("partitionBy",
           signature(rdd = "RDD", numPartitions = "integer"),
           function(rdd, numPartitions, partitionFunc = hashCode) {
-
+            
             #if (missing(partitionFunc)) {
             #  partitionFunc <- hashCode
             #}
-
+            
             depsBinArr <- getDependencies(partitionFunc)
-
+            
             serializedHashFuncBytes <- serialize(as.character(substitute(partitionFunc)),
                                                  connection = NULL,
                                                  ascii = TRUE)
-
+            
             packageNamesArr <- serialize(.sparkREnv$.packages,
                                          connection = NULL,
                                          ascii = TRUE)
             broadcastArr <- lapply(ls(.broadcastNames), function(name) {
-                                   get(name, .broadcastNames) })
+              get(name, .broadcastNames) })
             jrdd <- getJRDD(rdd)
-
+            
             # We create a PairwiseRRDD that extends RDD[(Array[Byte],
             # Array[Byte])], where the key is the hashed split, the value is
             # the content (key-val pairs).
@@ -1296,19 +1298,19 @@ setMethod("partitionBy",
                                        as.character(.sparkREnv$libname),
                                        broadcastArr,
                                        callJMethod(jrdd, "classTag"))
-
+            
             # Create a corresponding partitioner.
             rPartitioner <- newJObject("org.apache.spark.HashPartitioner",
                                        as.integer(numPartitions))
-
+            
             # Call partitionBy on the obtained PairwiseRDD.
             javaPairRDD <- callJMethod(pairwiseRRDD, "asJavaPairRDD")
             javaPairRDD <- callJMethod(javaPairRDD, "partitionBy", rPartitioner)
-
+            
             # Call .values() on the result to get back the final result, the
             # shuffled acutal content key-val pairs.
             r <- callJMethod(javaPairRDD, "values")
-
+            
             RDD(r, serialized = TRUE)
           })
 
@@ -1419,9 +1421,9 @@ setMethod("reduceByKey",
                        }
                      })
               combined <- lapply(ls(vals),
-                                  function(name) {
-                                    list(keys[[name]], vals[[name]])
-                                  })
+                                 function(name) {
+                                   list(keys[[name]], vals[[name]])
+                                 })
               combined
             }
             locallyReduced <- lapplyPartition(rdd, reduceVals)
@@ -1492,8 +1494,8 @@ setMethod("combineByKey",
                        }
                      })
               lapply(ls(keys), function(k) {
-                      list(keys[[k]], combiners[[k]])
-                     })
+                list(keys[[k]], combiners[[k]])
+              })
             }
             locallyCombined <- lapplyPartition(rdd, combineLocally)
             shuffled <- partitionBy(locallyCombined, numPartitions)
@@ -1513,8 +1515,8 @@ setMethod("combineByKey",
                        }
                      })
               lapply(ls(keys), function(k) {
-                      list(keys[[k]], combiners[[k]])
-                     })
+                list(keys[[k]], combiners[[k]])
+              })
             }
             combined <-lapplyPartition(shuffled, mergeAfterShuffle)
             combined
@@ -1607,7 +1609,7 @@ setMethod("join",
               }
               length(t1) <- index1 - 1
               length(t2) <- index2 - 1
-
+              
               result <- list()
               length(result) <- length(t1) * length(t2)
               index <- 1
@@ -1676,7 +1678,7 @@ setMethod("leftOuterJoin",
               } else {
                 length(t2) <- len2
               }
-
+              
               result <- list()
               length(result) <- length(t1) * length(t2)
               index <- 1
@@ -1797,7 +1799,7 @@ setMethod("fullOuterJoin",
           function(rdd1, rdd2, numPartitions) {
             rdd1Tagged <- lapply(rdd1, function(x) { list(x[[1]], list(1L, x[[2]])) })
             rdd2Tagged <- lapply(rdd2, function(x) { list(x[[1]], list(2L, x[[2]])) })
-
+            
             doJoin <- function(v) {
               t1 <- vector("list", length(v))
               t2 <- vector("list", length(v))
@@ -1814,19 +1816,19 @@ setMethod("fullOuterJoin",
               }
               len1 <- index1 - 1
               len2 <- index2 - 1
-
+              
               if (len1 == 0) {
                 t1 <- list(NULL)
               } else {
                 length(t1) <- len1
               }
-
+              
               if (len2 == 0) {
                 t2 <- list(NULL)
               } else {
                 length(t2) <- len2
               }
-
+              
               result <- list()
               length(result) <- length(t1) * length(t2)
               index <- 1

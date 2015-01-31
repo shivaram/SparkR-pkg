@@ -81,6 +81,25 @@ setMethod("registerTempTable",
             }
           })
 
+#' Count
+#' 
+#' Returns the number of rows in a DataFrame
+#' 
+#' @param df A SparkSQL DataFrame
+#' 
+#' @rdname count
+#' @export
+
+setGeneric("count", function(df) { standardGeneric("count") })
+
+setMethod("count",
+          signature(df = "DataFrame"),
+          function(df) {
+            sdf <- getsdf(df)
+            callJMethod(sdf, "count")
+            }
+          )
+
 #' Collect elements of a DataFrame
 #' 
 #' Returns a list of Row objects from a DataFrame
@@ -99,29 +118,3 @@ setMethod("collect",
           })
 
 # TODO: Add collect partition
-
-
-# setGeneric("limit", function(srdd, tableName) { standardGeneric("limit") })
-# 
-# setMethod("limit",
-#           signature(srdd = "SchemaRDD", limitNum = "integer")),
-#           function(srdd, limitNum) {
-#             jsrdd <- getjSchemaRDD(srdd)
-#             .jcall(jsrdd, )
-#           }
-
-
-
-
-#setGeneric("take", function(srdd, num) { standardGeneric("take") })
-
-# TO DO: FIGURE OUT HOW TO HANDLE STANDARD RDD OPERATIONS ON SCHEMA RDDS.  ESTABLISH RDD INHERITANCE IN THE SCHEMARDD CLASS?
-# IMPLEMENT JAVA METHODS DIRECTLY OR TRY TO MIRROR THE SCALA WORKFLOW (E.G. TAKE() as a function that uses collect statements inside R)
-
-# setMethod("take",
-#           signature(rdd = "SchemaRDD", num = "numeric"),
-#           function(rdd, num) {
-#             jsrdd <- getjSchemaRDD(rdd)
-#             takeResult <- .jcall(jsrdd, "Ljava/util/List;", "take", num)
-#             convertJListToRList(takeResult, flatten)
-#           })
