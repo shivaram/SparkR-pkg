@@ -11,7 +11,6 @@ setOldClass("jobj")
 #' @param env An R environment that stores bookkeeping states of the RDD
 #' @param jrdd Java object reference to the backing JavaRDD
 #' @export
-
 setClass("RDD",
          slots = list(env = "environment",
                       jrdd = "jobj"))
@@ -23,14 +22,14 @@ setMethod("initialize", "RDD", function(.Object, jrdd, serialized,
   # object (passed as an argument into a function, such as cache()) difficult:
   # i.e. one needs to make a copy of the RDD object and sets the new slot value
   # there.
-  
+
   # The slots are inheritable from superclass. Here, both `env' and `jrdd' are
   # inherited from RDD, but only the former is used.
   .Object@env <- new.env()
   .Object@env$isCached <- isCached
   .Object@env$isCheckpointed <- isCheckpointed
   .Object@env$serialized <- serialized
-  
+
   .Object@jrdd <- jrdd
   .Object
 })
@@ -58,12 +57,12 @@ setMethod("initialize", "PipelinedRDD", function(.Object, prev, func, jrdd_val) 
   .Object@env$jrdd_val <- jrdd_val
   .Object@env$serialized <- prev@env$serialized
   .Object@prev <- prev
-  
+
   isPipelinable <- function(rdd) {
     e <- rdd@env
     !(e$isCached || e$isCheckpointed)
   }
-  
+
   if (!inherits(prev, "PipelinedRDD") || !isPipelinable(prev)) {
     # This transformation is the first in its stage:
     .Object@func <- func
@@ -75,7 +74,7 @@ setMethod("initialize", "PipelinedRDD", function(.Object, prev, func, jrdd_val) 
     .Object@func <- pipelinedFunc
     .Object@prev_jrdd <- prev@prev_jrdd # maintain the pipeline
   }
-  
+
   .Object
 })
 
@@ -94,7 +93,7 @@ setMethod("getJRDD", signature(rdd = "PipelinedRDD"),
             if (!is.null(rdd@env$jrdd_val)) {
               return(rdd@env$jrdd_val)
             }
-            
+
             # TODO: This is to handle anonymous functions. Find out a
             # better way to do this.
             computeFunc <- function(split, part) {
@@ -102,18 +101,18 @@ setMethod("getJRDD", signature(rdd = "PipelinedRDD"),
             }
             serializedFuncArr <- serialize("computeFunc", connection = NULL,
                                            ascii = TRUE)
-            
+
             packageNamesArr <- serialize(.sparkREnv[[".packages"]],
                                          connection = NULL,
                                          ascii = TRUE)
-            
+
             broadcastArr <- lapply(ls(.broadcastNames),
                                    function(name) { get(name, .broadcastNames) })
-            
+
             depsBin <- getDependencies(computeFunc)
-            
+
             prev_jrdd <- rdd@prev_jrdd
-            
+
             if (dataSerialization) {
               rddRef <- newJObject("edu.berkeley.cs.amplab.sparkr.RRDD",
                                    callJMethod(prev_jrdd, "rdd"),
@@ -367,7 +366,7 @@ setMethod("collectPartition",
             jPartitionsList <- callJMethod(getJRDD(rdd),
                                            "collectPartitions",
                                            as.list(as.integer(partitionId)))
-            
+
             jList <- jPartitionsList[[1]]
             convertJListToRList(jList, flatten = TRUE)
           })
@@ -523,7 +522,7 @@ setMethod("lapply",
 
 #' @rdname lapply
 #' @export
-setGeneric("map", function(X, FUN) {
+setGeneric("map", function(X, FUN) { 
   standardGeneric("map") })
 
 #' @rdname lapply
