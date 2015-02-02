@@ -94,9 +94,9 @@ setMethod("registerTempTable",
 #' @export
 
 setMethod("count",
-          signature(rdd = "DataFrame"),
-          function(rdd) {
-            sdf <- getsdf(rdd)
+          signature(x = "DataFrame"),
+          function(x) {
+            sdf <- getsdf(x)
             callJMethod(sdf, "count")
           })
 
