@@ -67,13 +67,12 @@ export("sparkR.init")
 export("print.jobj")
 useDynLib(SparkR, stringHashCode)
 
-# SparkRSQL #
+# SparkRSQL
 
 exportClasses("DataFrame")
 
 exportMethods("printSchema",
-              "registerTempTable",
-              "count"
+              "registerTempTable"
               )
 
 export("jsonFile",

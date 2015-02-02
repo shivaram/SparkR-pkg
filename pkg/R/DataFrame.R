@@ -1,5 +1,8 @@
 # DataFrame.R - DataFrame class and methods implemented in S4 OO classes
 
+#' @include jobj.R RDD.R
+NULL
+
 setOldClass("jobj")
 
 #' @title S4 class that represents a DataFrame
@@ -16,20 +19,20 @@ setClass("DataFrame",
          slots = list(env = "environment",
                       sdf = "jobj"))
 
-setMethod("initialize", "DataFrame", function(.Object, DataFrame, isCached, isCheckpointed) {
+setMethod("initialize", "DataFrame", function(.Object, sdf, isCached, isCheckpointed) {
   .Object@env <- new.env()
   .Object@env$isCached <- isCached
   .Object@env$isCheckpointed <- isCheckpointed
   
-  .Object@sdf <- DataFrame
+  .Object@sdf <- sdf
   .Object
 })
 
 #' @rdname DataFrame
 #' @export
 
-dataFrame <- function(DataFrame, isCached = FALSE, isCheckpointed = FALSE) {
-  new("DataFrame", DataFrame, isCached, isCheckpointed)
+dataFrame <- function(sdf, isCached = FALSE, isCheckpointed = FALSE) {
+  new("DataFrame", sdf, isCached, isCheckpointed)
 }
 
 # The DataFrame accessor function
@@ -90,15 +93,12 @@ setMethod("registerTempTable",
 #' @rdname count
 #' @export
 
-setGeneric("count", function(df) { standardGeneric("count") })
-
 setMethod("count",
-          signature(df = "DataFrame"),
-          function(df) {
-            sdf <- getsdf(df)
+          signature(rdd = "DataFrame"),
+          function(rdd) {
+            sdf <- getsdf(rdd)
             callJMethod(sdf, "count")
-            }
-          )
+          })
 
 #' Collect elements of a DataFrame
 #' 
@@ -108,12 +108,11 @@ setMethod("count",
 #' 
 #' @rdname collect-methods
 #' @export
-setGeneric("collect", function(df) { standardGeneric("collect") })
 
 setMethod("collect",
-          signature(df = "DataFrame"),
-          function(df){
-            sdf <- getsdf(df)
+          signature(rdd = "DataFrame"),
+          function(rdd){
+            sdf <- getsdf(rdd)
             list_obj <- callJMethod(sdf, "collect")
           })
 

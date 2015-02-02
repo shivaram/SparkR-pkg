@@ -5,12 +5,12 @@
 \alias{dataFrame}
 \title{S4 class that represents a DataFrame}
 \usage{
-dataFrame(DataFrame, isCached = FALSE, isCheckpointed = FALSE)
+dataFrame(sdf, isCached = FALSE, isCheckpointed = FALSE)
 }
 \arguments{
-\item{env}{An R environment that stores bookkeeping states of the DataFrame}
-
 \item{sdf}{A Java object reference to the backing Scala SchemaRDD}
+
+\item{env}{An R environment that stores bookkeeping states of the DataFrame}
 }
 \description{
 DataFrames can be created using functions like
