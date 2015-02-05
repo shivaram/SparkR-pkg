@@ -114,20 +114,20 @@ setMethod("count",
             callJMethod(sdf, "count")
           })
 
-#' Collect elements of a DataFrame
-#' 
-#' Returns a list of Row objects from a DataFrame
-#' 
-#' @param df A SparkSQL DataFrame
-#' 
-#' @rdname collect-methods
-#' @export
-
-# TODO: Collect() currently returns a list of Generic Row objects and is WIP.  This will eventually 
-# be part of the process to read a DataFrame into R and create a data.frame.
-setMethod("collect",
-          signature(rdd = "DataFrame"),
-          function(rdd){
-            sdf <- rdd@sdf
-            listObj <- callJMethod(sdf, "collect")
-          })
+# #' Collect elements of a DataFrame
+# #' 
+# #' Returns a list of Row objects from a DataFrame
+# #' 
+# #' @param df A SparkSQL DataFrame
+# #' 
+# #' @rdname collect-methods
+# #' @export
+# 
+# # TODO: Collect() currently returns a list of Generic Row objects and is WIP.  This will eventually 
+# # be part of the process to read a DataFrame into R and create a data.frame.
+# setMethod("collect",
+#           signature(rdd = "DataFrame"),
+#           function(rdd){
+#             sdf <- rdd@sdf
+#             listObj <- callJMethod(sdf, "collect")
+#           })

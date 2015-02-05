@@ -80,6 +80,7 @@ export("jsonFile",
        "sql",
        "table",
        "cacheTable",
-       "uncacheTable")
+       "uncacheTable",
+       "collect_df")
 
 export("sparkRSQL.init")
