@@ -114,20 +114,50 @@ setMethod("count",
             callJMethod(sdf, "count")
           })
 
-# #' Collect elements of a DataFrame
-# #' 
-# #' Returns a list of Row objects from a DataFrame
-# #' 
-# #' @param df A SparkSQL DataFrame
-# #' 
-# #' @rdname collect-methods
-# #' @export
-# 
-# # TODO: Collect() currently returns a list of Generic Row objects and is WIP.  This will eventually 
-# # be part of the process to read a DataFrame into R and create a data.frame.
-# setMethod("collect",
-#           signature(rdd = "DataFrame"),
-#           function(rdd){
-#             sdf <- rdd@sdf
-#             listObj <- callJMethod(sdf, "collect")
-#           })
+#' Collect elements of a DataFrame
+#' 
+#' Returns a list of Row objects from a DataFrame
+#' 
+#' @param df A SparkSQL DataFrame
+#' 
+#' @rdname collect-methods
+#' @export
+
+setMethod("collect",
+          signature(rdd = "DataFrame"),
+          function(rdd) {
+            listCols <- callJStatic("edu.berkeley.cs.amplab.sparkr.SQLUtils", "dfToRDD", rdd@sdf)
+            cols <- lapply(seq_along(listCols),
+                           function(colIdx) {
+                             rddCol <- listCols[[colIdx]]
+                             rddRaw <- callJMethod(rddCol, "collect") # Returns a list of byte arrays per partition
+                             colPartitions <- lapply(seq_along(rddRaw),
+                                                     function(partIdx) {
+                                                       objRaw <- rawConnection(rddRaw[[partIdx]])
+                                                       numRows <- readInt(objRaw)
+                                                       col <- readCol(objRaw, numRows) # List of deserialized values per partition
+                                                       #close(objRaw)
+                                                       # TODO: How can I close the connection once the loop is done (but not before)?
+                                                     })
+                             colOut <- unlist(colPartitions, recursive = FALSE) # Flatten column list into a vector
+                           })
+            colNames <- callJStatic("edu.berkeley.cs.amplab.sparkr.SQLUtils", "getColNames", rdd@sdf)
+            names(cols) <- colNames
+            dfOut <- do.call(cbind.data.frame, cols)
+          })
+
+# Take a single column as Array[Byte] and deserialize it into an atomic vector
+readCol <- function(rawCon, numRows) {
+  sapply(1:numRows,
+         function(x) {
+           value <- readObject(rawCon)
+           # Replace NULL with NA so we can coerce to vectors
+           if (is.null(value)) {
+             value <- NA
+           }
+           value
+         })}
+
+toRDD <- function(df) {
+  rdd <- callJStatic("edu.berkeley.cs.amplab.sparkr.SQLUtils", "dfToRDD", df@sdf)
+}

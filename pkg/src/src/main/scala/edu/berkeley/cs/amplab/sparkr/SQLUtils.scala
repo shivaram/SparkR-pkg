@@ -21,6 +21,12 @@ object SQLUtils {
     names
   }
 
+  def getNumPartitions(col: RDD[Any]): Int = {
+    val numPartitions = col.partitions.size
+
+    numPartitions
+  }
+
   def getFieldsFromStructType(st: StructType): Array[(String, String, String)] = {
     val names = st.fields.map(_.name)
     val types = st.fields.map(_.dataType.typeName)
@@ -29,7 +35,9 @@ object SQLUtils {
     (names, types, nullable).zipped.toArray  //Returns a tuple3 containing the contents of each structField
   }
 
-  def dfToRDD(df: DataFrame): Array[Array[Byte]] = {
+// We convert the DataFrame into an array of RDDs one for each column
+// Each RDD contains a serialized form of the column per partition.
+  def dfToRDD(df: DataFrame): Array[RDD[Array[Byte]]] = {
     val colRDDs = convertRowsToColumns(df)
     val dfOut = colRDDs.map { col =>
       colToRBytes(col)
@@ -47,17 +55,20 @@ object SQLUtils {
     colRDDs.toArray
   }
 
-  def colToRBytes(col: RDD[Any]): Array[Byte] = {
-    val bos = new ByteArrayOutputStream()
-    val dos = new DataOutputStream(bos)
-    val numRows = col.count.toInt
-    val collectedRows = col.collect
+  def colToRBytes(col: RDD[Any]): RDD[Array[Byte]] = {
+    col.mapPartitions { iter =>
+      val arr = iter.toArray // Array[Any]
+      val bos = new ByteArrayOutputStream()
+      val dos = new DataOutputStream(bos)
+      val numRowsInPartition = arr.length
 
-    SerDe.writeInt(dos, numRows)
-    (0 until numRows).map { rowIdx =>
-      val obj: Object = collectedRows.apply(rowIdx).asInstanceOf[Object]
-      val colArr = SerDe.writeObject(dos, obj)
+      SerDe.writeInt(dos, numRowsInPartition)
+      arr.map { item =>
+        val obj: Object = item.asInstanceOf[Object]
+        val colOut = SerDe.writeObject(dos, obj)
+      }
+      Iterator.single(bos.toByteArray())
     }
-    bos.toByteArray()
   }
 }
+
