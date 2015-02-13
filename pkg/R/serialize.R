@@ -115,9 +115,17 @@ writeEnv <- function(con, env) {
 writeArgs <- function(con, args) {
   if (length(args) > 0) {
     for (a in args) {
-      writeObject(con, a)
+      if (!is.null(a)) writeObject(con, a)
     }
   }
+}
+
+lenArgs <- function(list){
+  i <- 0
+  for (elem in list) {
+    if (!is.null(elem)) i <- i + 1
+  }
+  i
 }
 
 writeStrings <- function(con, stringList) {

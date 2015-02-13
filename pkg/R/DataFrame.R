@@ -126,7 +126,7 @@ setMethod("count",
 setMethod("collect",
           signature(rdd = "DataFrame"),
           function(rdd) {
-            listCols <- callJStatic("edu.berkeley.cs.amplab.sparkr.SQLUtils", "dfToRDD", rdd@sdf)
+            listCols <- callJStatic("edu.berkeley.cs.amplab.sparkr.SQLUtils", "dfToColRDD", rdd@sdf)
             cols <- lapply(seq_along(listCols),
                            function(colIdx) {
                              rddCol <- listCols[[colIdx]]

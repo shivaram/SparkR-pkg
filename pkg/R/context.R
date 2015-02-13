@@ -32,7 +32,7 @@ textFile <- function(sc, path, minSplits = NULL) {
   path <- paste(path, collapse = ",")
 
   jrdd <- callJMethod(sc, "textFile", path, getMinSplits(sc, minSplits))
-  RDD(jrdd, FALSE)
+  RDD(jrdd, "string")
 }
 
 #' Load an RDD saved as a SequenceFile containing serialized objects.
@@ -60,7 +60,7 @@ objectFile <- function(sc, path, minSplits = NULL) {
 
   jrdd <- callJMethod(sc, "objectFile", path, getMinSplits(sc, minSplits))
   # Assume the RDD contains serialized R objects.
-  RDD(jrdd, TRUE)
+  RDD(jrdd, "byte")
 }
 
 #' Create an RDD from a homogeneous list or vector.
@@ -106,7 +106,7 @@ parallelize <- function(sc, coll, numSlices = 1) {
   jrdd <- callJStatic("edu.berkeley.cs.amplab.sparkr.RRDD",
                       "createRDDFromArray", sc, serializedSlices)
 
-  RDD(jrdd, TRUE)
+  RDD(jrdd, "byte")
 }
 
 

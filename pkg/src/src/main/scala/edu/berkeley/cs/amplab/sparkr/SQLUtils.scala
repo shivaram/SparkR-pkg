@@ -2,6 +2,7 @@ package edu.berkeley.cs.amplab.sparkr
 
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
+import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.sql.{SQLContext, DataFrame, Row}
 import org.apache.spark.sql.types.{StructType}
 
@@ -35,9 +36,25 @@ object SQLUtils {
     (names, types, nullable).zipped.toArray  //Returns a tuple3 containing the contents of each structField
   }
 
+  def dfToRowRDD(df: DataFrame): JavaRDD[Array[Byte]] = {
+    df.map(r => rowToRBytes(r))
+  }
+
+  def rowToRBytes(row: Row): Array[Byte] = {
+    val bos = new ByteArrayOutputStream()
+    val dos = new DataOutputStream(bos)
+
+    SerDe.writeInt(dos, row.length)
+    (0 until row.length).map { idx =>
+      val obj: Object = row(idx).asInstanceOf[Object]
+      val arr = SerDe.writeObject(dos, obj)
+    }
+    bos.toByteArray()
+  }
+
 // We convert the DataFrame into an array of RDDs one for each column
 // Each RDD contains a serialized form of the column per partition.
-  def dfToRDD(df: DataFrame): Array[RDD[Array[Byte]]] = {
+  def dfToColRDD(df: DataFrame): Array[RDD[Array[Byte]]] = {
     val colRDDs = convertRowsToColumns(df)
     val dfOut = colRDDs.map { col =>
       colToRBytes(col)

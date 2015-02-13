@@ -70,7 +70,7 @@ invokeJava <- function(isStatic, objId, methodName, ...) {
   writeString(rc, methodName)
 
   args <- list(...)
-  writeInt(rc, length(args))
+  writeInt(rc, lenArgs(args))
   writeArgs(rc, args)
 
   # Construct the whole request message to send it once,
