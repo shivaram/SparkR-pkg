@@ -32,6 +32,7 @@ textFile <- function(sc, path, minSplits = NULL) {
   path <- paste(path, collapse = ",")
 
   jrdd <- callJMethod(sc, "textFile", path, getMinSplits(sc, minSplits))
+  # jrdd is of type JavaRDD[String]
   RDD(jrdd, "string")
 }
 

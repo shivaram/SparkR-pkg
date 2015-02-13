@@ -2,9 +2,6 @@
 
 setOldClass("jobj")
 
-setOldClass("list")
-setClassUnion("listOrNULL", c("list", "NULL"))
-
 #' @title S4 class that represents an RDD
 #' @description RDD can be created using functions like
 #'              \code{parallelize}, \code{textFile} etc.
@@ -17,7 +14,7 @@ setClassUnion("listOrNULL", c("list", "NULL"))
 setClass("RDD",
          slots = list(env = "environment",
                       jrdd = "jobj",
-                      colNames = "listOrNULL"))
+                      colNames = "list"))
 
 setClass("PipelinedRDD",
          slots = list(prev = "RDD",
@@ -41,9 +38,7 @@ setMethod("initialize", "RDD", function(.Object, jrdd, serialized,
   .Object@env$isCheckpointed <- isCheckpointed
   .Object@env$serialized <- serialized
 
-  #if (!is.null(colNames)) {
-    .Object@colNames <- colNames
-  #}
+  .Object@colNames <- colNames
 
   .Object@jrdd <- jrdd
   .Object
@@ -57,9 +52,7 @@ setMethod("initialize", "PipelinedRDD", function(.Object, prev, func, jrdd_val) 
    # This tracks if jrdd_val is serialized
   .Object@env$serialized <- prev@env$serialized
   
-  #if (!is.null(prev@colNames)) {
-    .Object@colNames <- prev@colNames
-  #}
+  .Object@colNames <- prev@colNames
 
   # NOTE: We use prev_serialized to track if prev_jrdd is serialized
   # prev_serialized is used during the delayed computation of JRDD in getJRDD
@@ -78,9 +71,7 @@ setMethod("initialize", "PipelinedRDD", function(.Object, prev, func, jrdd_val) 
     # is same as serialized here.
     .Object@env$prev_serialized <- .Object@env$serialized
 
-    #if (!is.null(prev@colNames)) {
-      .Object@colNames <- prev@colNames
-    #}
+    .Object@colNames <- prev@colNames
     # How do we update colNames across transformations?
   } else {
     pipelinedFunc <- function(split, iterator) {
@@ -91,9 +82,7 @@ setMethod("initialize", "PipelinedRDD", function(.Object, prev, func, jrdd_val) 
     # Get if the prev_jrdd was serialized from the parent RDD
     .Object@env$prev_serialized <- prev@env$prev_serialized
     
-    #if (!is.null(.prev@colNames)) {
-      .Object@colNames <- prev@colNames
-    #}
+    .Object@colNames <- prev@colNames
   }
 
   .Object
@@ -108,8 +97,8 @@ setMethod("initialize", "PipelinedRDD", function(.Object, prev, func, jrdd_val) 
 #' @param isCached TRUE if the RDD is cached
 #' @param isCheckpointed TRUE if the RDD has been checkpointed
 RDD <- function(jrdd, serialized = "byte", isCached = FALSE,
-                isCheckpointed = FALSE, colNames = NULL) {
-    new("RDD", jrdd, serialized, isCached, isCheckpointed, colNames)
+                isCheckpointed = FALSE, colNames = list()) {
+  new("RDD", jrdd, serialized, isCached, isCheckpointed, colNames)
 }
 
 PipelinedRDD <- function(prev, func) {
@@ -145,20 +134,9 @@ setMethod("getJRDD", signature(rdd = "PipelinedRDD"),
 
             prev_jrdd <- rdd@prev_jrdd
 
-            namesArr <- serialize(if (!is.null(rdd@colNames)) rdd@colNames else 0, connection = NULL, ascii = TRUE)
+            #namesArr <- serialize(if (!is.null(rdd@colNames)) rdd@colNames else 0, connection = NULL, ascii = TRUE)
 
-            if (dataSerialization == "byte") {
-              rddRef <- newJObject("edu.berkeley.cs.amplab.sparkr.RRDD",
-                                   callJMethod(prev_jrdd, "rdd"),
-                                   serializedFuncArr,
-                                   rdd@env$prev_serialized,
-                                   depsBin,
-                                   packageNamesArr,
-                                   as.character(.sparkREnv[["libname"]]),
-                                   broadcastArr,
-                                   namesArr,
-                                   callJMethod(prev_jrdd, "classTag"))
-            } else if (dataSerialization == "string") {
+            if (dataSerialization == "string") {
               rddRef <- newJObject("edu.berkeley.cs.amplab.sparkr.StringRRDD",
                                    callJMethod(prev_jrdd, "rdd"),
                                    serializedFuncArr,
@@ -167,7 +145,7 @@ setMethod("getJRDD", signature(rdd = "PipelinedRDD"),
                                    packageNamesArr,
                                    as.character(.sparkREnv[["libname"]]),
                                    broadcastArr,
-                                   namesArr,
+                                   rdd@colNames,
                                    callJMethod(prev_jrdd, "classTag"))
             } else {
               rddRef <- newJObject("edu.berkeley.cs.amplab.sparkr.RRDD",
@@ -178,7 +156,7 @@ setMethod("getJRDD", signature(rdd = "PipelinedRDD"),
                                    packageNamesArr,
                                    as.character(.sparkREnv[["libname"]]),
                                    broadcastArr,
-                                   namesArr,
+                                   rdd@colNames,
                                    callJMethod(prev_jrdd, "classTag"))
             }
             # Save the serialization flag after we create a RRDD

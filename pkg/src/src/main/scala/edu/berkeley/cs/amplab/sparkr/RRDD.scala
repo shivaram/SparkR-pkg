@@ -138,13 +138,14 @@ private abstract class BaseRRDD[T: ClassTag, U: ClassTag](
         dataOut.write(func, 0, func.length)
 
         // R worker process input serialization flag
-        dataOut.writeBytes(if (parentSerialized == "byte") {
-          "byte"
-          } else if (parentSerialized == "string") {
-            "string"
-          } else {
-            "rows"
-          })
+        SerDe.writeString(dataOut, parentSerialized) 
+        // dataOut.writeBytes(if (parentSerialized == "byte") {
+        //     "byte"
+        //   } else if (parentSerialized == "string") {
+        //     "string"
+        //   } else {
+        //     "rows"
+        //   })
         // R worker process output serialization flag
         dataOut.writeInt(if (dataSerialized) 1 else 0)
 
@@ -172,28 +173,29 @@ private abstract class BaseRRDD[T: ClassTag, U: ClassTag](
           dataOut.writeInt(1)
         }
 
-        if ( parentSerialized == "rows") {
-          dataOut.writeInt(colNames.length)
-          for (elem <- colNames) {
-            dataOut.writeInt(elem.length)
-            dataOut.writeBytes(elem)
-            }
+        if (parentSerialized == "rows") {
+          SerDe.writeStringArr(dataOut, colNames)
+          // dataOut.writeInt(colNames.length)
+          // for (elem <- colNames) {
+          //   dataOut.writeInt(elem.length)
+          //   dataOut.writeBytes(elem)
+          // }
           for (row <- iter) {
             val rowArr = row.asInstanceOf[Array[Byte]]
-            dataOut.writeInt(rowArr.length)
+            // dataOut.writeInt(rowArr.length)
             dataOut.write(rowArr, 0, rowArr.length)
+          }
+        } else {
+          for (elem <- iter) {
+            if (parentSerialized == "byte") {
+              val elemArr = elem.asInstanceOf[Array[Byte]]
+              dataOut.writeInt(elemArr.length)
+              dataOut.write(elemArr, 0, elemArr.length)
+            } else {
+              printOut.println(elem)
             }
-          } else {
-              for (elem <- iter) {
-                if (parentSerialized == "byte") {
-                  val elemArr = elem.asInstanceOf[Array[Byte]]
-                  dataOut.writeInt(elemArr.length)
-                  dataOut.write(elemArr, 0, elemArr.length)
-                } else {
-                  printOut.println(elem)
-                }
-              }
-            }
+          }
+        }
         
         printOut.flush()
         dataOut.flush()

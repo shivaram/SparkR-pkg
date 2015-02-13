@@ -16,6 +16,7 @@
 readObject <- function(con) {
   # Read type first
   type <- readType(con)
+  cat("Got type ", type, "\n", file=stderr())
   readTypedObject(con, type)
 }
 
@@ -102,26 +103,33 @@ readDeserialize <- function(con) {
 }
 
 readDeserializeRows <- function(inputCon) {
-  colNamesLen <- readInt(inputCon)
-  colNames <- lapply(1:colNamesLen, function(x) {
-    readObject(inputCon)
-    })
+  colNames <- readList(inputCon)
+  cat("colNames ", unlist(colNames), "\n", file=stderr())
+  # colNamesLen <- readInt(inputCon)
+  # colNames <- lapply(1:colNamesLen, function(x) {
+  #   readObject(inputCon)
+  # })
 
   data <- list()
+  numCols <- readInt(inputCon)
+  cat("Got numCols ", numCols, "\n", file=stderr())
   # We write a length for each row out
-  rowLen <- readInt(con)
-  while (length(rowLen) > 0 && rowLen > 0) {
-    data[[length(data) + 1L]] <- readRow(inputCon, rowLen)
-    # rowLen will return 0 if there are no more rows to be read
-    rowLen <- readInt(con)
+  while(length(numCols) > 0 && numCols > 0) {
+    data[[length(data) + 1L]] <- readRow(inputCon, numCols)
+    numCols <- readInt(inputCon)
   }
   dataOut <- lapply(data, assignNames, colNames)
   dataOut # this is a list of named lists now
 }
  
-readRow <- function(inputCon, rowLen) {
-  lapply(1:rowLen, function(x) {
-    readObject(inputCon)
+readRow <- function(inputCon, numCols) {
+  lapply(1:numCols, function(x) {
+    obj <- readObject(inputCon)
+    if (is.null(obj)) {
+      NA
+    } else {
+      obj
+    }
   }) # each row is a list now
 } 
 

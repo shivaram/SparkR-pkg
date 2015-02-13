@@ -47,7 +47,7 @@ object SQLUtils {
     SerDe.writeInt(dos, row.length)
     (0 until row.length).map { idx =>
       val obj: Object = row(idx).asInstanceOf[Object]
-      val arr = SerDe.writeObject(dos, obj)
+      SerDe.writeObject(dos, obj)
     }
     bos.toByteArray()
   }
@@ -82,7 +82,7 @@ object SQLUtils {
       SerDe.writeInt(dos, numRowsInPartition)
       arr.map { item =>
         val obj: Object = item.asInstanceOf[Object]
-        val colOut = SerDe.writeObject(dos, obj)
+        SerDe.writeObject(dos, obj)
       }
       Iterator.single(bos.toByteArray())
     }

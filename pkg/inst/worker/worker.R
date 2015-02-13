@@ -74,7 +74,7 @@ if (isEmpty != 0) {
     } else if (inputSerialization == "string") {
       data <- readLines(inputCon)
     } else {
-      data <- readDeserializeRows(inputCon)
+      data <- SparkR:::readDeserializeRows(inputCon)
     }
     output <- do.call(execFunctionName, list(splitIndex, data))
     if (isOutputSerialized) {
@@ -83,13 +83,13 @@ if (isEmpty != 0) {
       SparkR:::writeStrings(outputCon, output)
     }
   } else {
-    if (inputSerialization == "byte" {
+    if (inputSerialization == "byte") {
       # Now read as many characters as described in funcLen
       data <- SparkR:::readDeserialize(inputCon)
     } else if (inputSerialization == "string") {
       data <- readLines(inputCon)
     } else {
-      data <- readDeserializeRows(inputCon)
+      data <- SparkR:::readDeserializeRows(inputCon)
     }
 
     res <- new.env()

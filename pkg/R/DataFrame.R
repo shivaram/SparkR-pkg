@@ -159,5 +159,5 @@ readCol <- function(rawCon, numRows) {
          })}
 
 toRDD <- function(df) {
-  rdd <- callJStatic("edu.berkeley.cs.amplab.sparkr.SQLUtils", "dfToRDD", df@sdf)
+  rdd <- callJStatic("edu.berkeley.cs.amplab.sparkr.SQLUtils", "dfToRowRDD", df@sdf)
 }
